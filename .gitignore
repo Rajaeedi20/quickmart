@@ -1,0 +1,15 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Java build files
+**/target/
+
+# React dependencies
+**/node_modules/
+**/dist/
+
+# IDE files
+.idea/
+.vscode/

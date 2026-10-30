@@ -1,0 +1,400 @@
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+}
+
+
+
+/* Shop by Category hover effect */
+.category-card {
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 16px;
+}
+
+.category-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(25, 135, 84, 0.18) !important;
+}
+
+.category-icon {
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.category-card:hover .category-icon {
+  transform: scale(1.12);
+}
+
+.category-card:focus-visible {
+  outline: 2px solid #198754;
+  outline-offset: 3px;
+}
+
+
+/* Scroll loading progress bar */
+.scroll-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  z-index: 2000;
+}
+
+.scroll-progress-bar {
+  height: 70%;
+  width: 0;
+  background: #198754;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 8px rgba(25, 135, 84, 0.5);
+}
+
+
+
+.product-card {
+  border-radius: 14px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+
+.offer-card {
+  border: 1px solid #e9ecef;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.offer-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.offer-fruits {
+  background: linear-gradient(135deg, #f0fff4, #ffffff);
+}
+
+.offer-daily {
+  background: linear-gradient(135deg, #fff8e7, #ffffff);
+}
+
+
+
+
+.feature-card {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(25, 135, 84, 0.12);
+}
+
+.feature-icon {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: #e8f5e9;
+  color: #198754;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+
+.review-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.review-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.review-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #e8f5e9;
+  color: #198754;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+
+
+/* QuickMart Footer */
+.quickmart-footer {
+  background: #102b20;
+  color: #e8f0eb;
+}
+
+.footer-brand {
+  color: #ffffff;
+}
+
+.footer-brand svg {
+  color: #57d68d;
+}
+
+.footer-brand:hover {
+  color: #57d68d;
+}
+
+.footer-description {
+  color: #bdcdc3;
+  line-height: 1.8;
+  max-width: 340px;
+}
+
+.footer-heading {
+  color: #ffffff;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 0.85rem;
+}
+
+.footer-links a,
+.footer-contact a,
+.footer-bottom a {
+  color: #bdcdc3;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover,
+.footer-contact a:hover,
+.footer-bottom a:hover {
+  color: #57d68d;
+}
+
+.footer-contact {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 1rem;
+  color: #bdcdc3;
+  overflow-wrap: anywhere;
+}
+
+.footer-contact svg {
+  color: #57d68d;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.social-link {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #496457;
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.social-link:hover {
+  background: #198754;
+  border-color: #198754;
+  color: #ffffff;
+}
+
+.footer-bottom {
+  border-top: 1px solid #345143;
+  color: #bdcdc3;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+  .quickmart-footer .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+
+.social-link {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #496457;
+  border-radius: 50%;
+  color: #ffffff;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.social-link:hover {
+  background: #198754;
+  border-color: #198754;
+  color: #ffffff;
+}
+
+
+
+/* Register and Login Modal */
+.qm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.qm-modal {
+  width: 100%;
+  max-width: 450px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: qm-modal-show 0.2s ease-out;
+}
+
+.qm-flash-message {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: calc(100vw - 2rem);
+  margin: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  animation: qm-modal-show 0.2s ease-out;
+}
+
+.qm-flash-close {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.qm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.qm-modal-header h4 {
+  color: #183b2b;
+  font-weight: 700;
+}
+
+.qm-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #666666;
+  padding: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qm-close-btn:hover {
+  background: #f1f5f2;
+  color: #198754;
+}
+
+.qm-modal-body {
+  padding: 24px;
+}
+
+.qm-modal .form-label {
+  font-weight: 600;
+  color: #34483c;
+}
+
+.qm-modal .form-control {
+  min-height: 45px;
+  border-radius: 8px;
+}
+
+.qm-modal .form-control:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+}
+
+.qm-text-btn {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #198754;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qm-text-btn:hover {
+  color: #115c38;
+  text-decoration: underline;
+}
+
+@keyframes qm-modal-show {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .qm-modal-header,
+  .qm-modal-body {
+    padding: 18px;
+  }
+}

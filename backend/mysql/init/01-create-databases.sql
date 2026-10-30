@@ -1,0 +1,2 @@
+CREATE DATABASE IF NOT EXISTS quickmart_product;
+CREATE DATABASE IF NOT EXISTS quickmart_payments;
