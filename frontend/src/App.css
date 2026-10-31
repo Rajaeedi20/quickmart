@@ -398,3 +398,144 @@ body {
     padding: 18px;
   }
 }
+
+.admin-summary-card {
+  max-width: 340px;
+  background: linear-gradient(135deg, #f0fff4, #ffffff);
+  border: 1px solid #e1efe5;
+  border-radius: 16px;
+}
+
+.admin-summary-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e2f5e8;
+  color: #198754;
+}
+
+.admin-search {
+  width: min(100%, 360px);
+}
+
+.admin-customer-table thead th {
+  padding: 0.9rem 1rem;
+  color: #65756a;
+  background: #f8faf8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-customer-table tbody td {
+  padding: 1rem;
+}
+
+.admin-spinning {
+  animation: admin-spin 1s linear infinite;
+}
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background: #ffffff;
+  border-bottom: 1px solid #e5ece7;
+  box-shadow: 0 3px 14px rgba(20, 54, 36, 0.06);
+}
+
+.admin-header-content {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem clamp(1rem, 4vw, 3rem);
+}
+
+.admin-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #183b2b;
+  text-decoration: none;
+}
+
+.admin-header-logo {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: #e8f5ed;
+  color: #198754;
+}
+
+.admin-header-title,
+.admin-header-subtitle,
+.admin-header-user-name,
+.admin-header-user-email {
+  display: block;
+}
+
+.admin-header-title {
+  font-size: 1.08rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.admin-header-subtitle,
+.admin-header-user-email {
+  color: #718078;
+  font-size: 0.8rem;
+}
+
+.admin-header-account {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-header-user {
+  text-align: right;
+}
+
+.admin-header-user-name {
+  color: #263d30;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.admin-header-error {
+  padding: 0.6rem 1rem;
+  color: #842029;
+  background: #f8d7da;
+  text-align: center;
+}
+
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 575px) {
+  .admin-header-content {
+    min-height: 68px;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .admin-header-account {
+    gap: 0.6rem;
+  }
+
+  .admin-header-user {
+    display: none;
+  }
+}

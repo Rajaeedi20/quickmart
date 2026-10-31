@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle, CreditCard } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -8,8 +8,15 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [payment, setPayment] = useState(null)
-  const paymentServiceUrl =
-    (import.meta.env.VITE_PAYMENT_SERVICE_URL || '').replace(/\/+$/, '')
+
+  useEffect(() => {
+    if (!error) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setError(''), 3000)
+    return () => window.clearTimeout(timeoutId)
+  }, [error])
 
   const total = cartItems.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
@@ -21,7 +28,7 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
     setError('')
 
     try {
-      const response = await axios.post(`${paymentServiceUrl}/api/payments/demo`, {
+      const response = await axios.post('/api/payments/demo', {
         userId: currentUser.userId,
         items: cartItems.map((item) => ({
           productId: item.id,
@@ -38,6 +45,9 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
       setError(
         response?.data?.detail ||
           response?.data?.message ||
+          (response?.status === 409
+            ? 'Some items no longer have enough stock. Update your cart and try again.'
+            : null) ||
           (response
             ? `Payment service returned HTTP ${response.status}. Please try again.`
             : 'Cannot connect to the payment service. Start payment-service and check its MySQL credentials if it fails to start.')
@@ -59,7 +69,10 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
           <p className="small text-muted">
             Reference: {payment.reference}
           </p>
-          <p className="fw-semibold">Total: ${Number(payment.total).toFixed(2)}</p>
+          {payment.orderNumber && (
+            <p className="small text-muted">Order: {payment.orderNumber}</p>
+          )}
+          <p className="fw-semibold">Total: ₹{Number(payment.total).toFixed(2)}</p>
           <button
             type="button"
             className="btn btn-success"
@@ -137,7 +150,7 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
                       <span className="text-muted">Quantity: {item.quantity}</span>
                     </div>
                     <span className="fw-semibold">
-                      ${(Number(item.price) * item.quantity).toFixed(2)}
+                      ₹{(Number(item.price) * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -150,11 +163,11 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
               <h2 className="h5 fw-bold mb-3">Order summary</h2>
               <div className="d-flex justify-content-between mb-2">
                 <span>Items ({cartItems.reduce((sum, item) => sum + item.quantity, 0)})</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
               <div className="d-flex justify-content-between border-top pt-3 mb-3 fw-bold">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
               <div className="alert alert-info small" role="note">
                 Demo gateway: the payment service records a simulated payment.
@@ -174,7 +187,7 @@ const Checkout = ({ currentUser, cartItems, onPaymentComplete }) => {
                 <CreditCard size={18} className="me-2" />
                 {isSubmitting
                   ? 'Processing demo payment...'
-                  : `Pay $${total.toFixed(2)} with demo gateway`}
+                  : `Pay ₹${total.toFixed(2)} with demo gateway`}
               </button>
             </div>
           </aside>

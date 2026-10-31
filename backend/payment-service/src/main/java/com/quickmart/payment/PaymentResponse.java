@@ -7,5 +7,6 @@ public record PaymentResponse(
         String reference,
         String status,
         BigDecimal total,
-        String message) {
+        String message,
+        String orderNumber) {
 }

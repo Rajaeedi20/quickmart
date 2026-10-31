@@ -1,18 +1,30 @@
 package com.quickmart.user.controller;
 
+import java.util.List;
 import java.util.Locale;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.quickmart.user.dto.AuthResponse;
+import com.quickmart.user.dto.CustomerPurchaseResponse;
 import com.quickmart.user.dto.LoginRequest;
 import com.quickmart.user.dto.RegisterRequest;
 import com.quickmart.user.entity.User;
+import com.quickmart.user.repository.PaymentNotificationRepository;
 import com.quickmart.user.repository.UserRepository;
 
 @RestController
@@ -21,12 +33,18 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityContextRepository securityContextRepository;
+    private final PaymentNotificationRepository paymentNotificationRepository;
 
     public AuthController(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            SecurityContextRepository securityContextRepository,
+            PaymentNotificationRepository paymentNotificationRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.securityContextRepository = securityContextRepository;
+        this.paymentNotificationRepository = paymentNotificationRepository;
     }
 
     // REGISTER
@@ -78,7 +96,9 @@ public class AuthController {
     // LOGIN
     @PostMapping("/login")
     public AuthResponse login(
-            @Valid @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
 
         String email = request.email()
                 .trim()
@@ -104,11 +124,53 @@ public class AuthController {
             );
         }
 
+        HttpSession existingSession = servletRequest.getSession(false);
+        if (existingSession != null) {
+            servletRequest.changeSessionId();
+        }
+
+        UserDetails principal = org.springframework.security.core.userdetails.User
+                .withUsername(user.getEmail())
+                .password(user.getPasswordHash())
+                .roles("CUSTOMER")
+                .build();
+        Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
+                principal,
+                null,
+                principal.getAuthorities());
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
+
         return new AuthResponse(
                 "Login successful",
                 user.getId(),
                 user.getName(),
                 user.getEmail()
         );
+    }
+
+    @GetMapping("/purchase-history")
+    public List<CustomerPurchaseResponse> purchaseHistory(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Customer account is no longer available"));
+
+        return paymentNotificationRepository
+                .findAllByUser_IdOrderByCompletedAtDesc(user.getId())
+                .stream()
+                .map(CustomerPurchaseResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/logout")
+    public void logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
     }
 }
