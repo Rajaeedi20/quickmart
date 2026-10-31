@@ -1,8 +1,10 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   MapPin,
+  Minus,
+  Plus,
   Search,
   ShoppingCart,
   User,
@@ -12,24 +14,29 @@ import { useNavigate } from 'react-router-dom'
 
 import quickMartLogo from '../assets/QuickMart_Logo.png'
 
-const userServiceUrl =
-  (import.meta.env.VITE_USER_SERVICE_URL || '').replace(/\/+$/, '')
-
 const Header = ({
   currentUser,
   cartItems,
   onLoginSuccess,
+  onAdminLoginSuccess,
   onLogout,
   onRemoveFromCart,
+  onUpdateCartQuantity,
   onProceedToCheckout,
+  onFlashMessage,
+  searchQuery,
+  onSearchChange,
 }) => {
   const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
   const [isLogin, setIsLogin] = useState(false)
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [flashMessage, setFlashMessage] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCart, setShowCart] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [deliveryLocations, setDeliveryLocations] = useState({})
+  const [locationDraft, setLocationDraft] = useState({ address: '', pincode: '' })
 
   const [formData, setFormData] = useState({
     name: '',
@@ -41,20 +48,34 @@ const Header = ({
 
   const [error, setError] = useState('')
 
+  const locationStorageKey = currentUser?.userId
+    ? `quickmartDeliveryLocation_${currentUser.userId}`
+    : 'quickmartDeliveryLocation_guest'
+  const deliveryLocation = useMemo(() => {
+    if (Object.hasOwn(deliveryLocations, locationStorageKey)) {
+      return deliveryLocations[locationStorageKey]
+    }
+
+    try {
+      return JSON.parse(localStorage.getItem(locationStorageKey) || 'null')
+    } catch (storageError) {
+      console.error('Could not load the saved delivery location.', storageError)
+      return null
+    }
+  }, [deliveryLocations, locationStorageKey])
+
   useEffect(() => {
-    if (!flashMessage) {
+    if (!error) {
       return undefined
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setFlashMessage('')
-    }, 4000)
-
+    const timeoutId = window.setTimeout(() => setError(''), 3000)
     return () => window.clearTimeout(timeoutId)
-  }, [flashMessage])
+  }, [error])
 
   const openModal = (loginMode = false) => {
     setIsLogin(loginMode)
+    setIsAdminLogin(false)
     setShowModal(true)
     setError('')
   }
@@ -119,19 +140,25 @@ const Header = ({
 
     try {
       const response = await axios.post(
-        `${userServiceUrl}/api/auth/${isLogin ? 'login' : 'register'}`,
+        `/api/${isAdminLogin ? 'admin/login' : `auth/${isLogin ? 'login' : 'register'}`}`,
         isLogin
           ? { email, password: formData.password }
-          : { name, mobile, email, password: formData.password }
+          : { name, mobile, email, password: formData.password },
+        { withCredentials: true }
       )
 
-      if (isLogin) {
+      if (isAdminLogin) {
+        onAdminLoginSuccess(response.data)
+        navigate('/admin')
+      } else if (isLogin) {
         onLoginSuccess(response.data)
+        navigate('/')
       }
 
-      setFlashMessage(
+      onFlashMessage(
         response.data?.message ||
-          (isLogin ? 'Login successful.' : 'Registration successful.')
+          (isLogin ? 'Login successful.' : 'Registration successful.'),
+        'success'
       )
       closeModal()
     } catch (requestError) {
@@ -188,6 +215,33 @@ const Header = ({
     (total, item) => total + Number(item.price) * item.quantity,
     0
   )
+  const saveDeliveryLocation = (event) => {
+    event.preventDefault()
+    const nextLocation = {
+      address: locationDraft.address.trim(),
+      pincode: locationDraft.pincode.trim(),
+    }
+    if (!nextLocation.address || !/^\d{6}$/.test(nextLocation.pincode)) {
+      onFlashMessage('Enter your delivery area and a valid 6-digit PIN code.', 'danger')
+      return
+    }
+
+    const storageKey = currentUser?.userId
+      ? `quickmartDeliveryLocation_${currentUser.userId}`
+      : 'quickmartDeliveryLocation_guest'
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(nextLocation))
+      setDeliveryLocations((previous) => ({
+        ...previous,
+        [storageKey]: nextLocation,
+      }))
+      setShowLocationModal(false)
+      onFlashMessage('Delivery location saved.', 'success')
+    } catch (storageError) {
+      console.error('Could not save the delivery location.', storageError)
+      onFlashMessage('Could not save your delivery location on this device.', 'danger')
+    }
+  }
 
   return (
     <>
@@ -211,6 +265,13 @@ const Header = ({
           <button
             type="button"
             className="btn btn-light d-flex align-items-center gap-2 border-0"
+            onClick={() => {
+              setLocationDraft({
+                address: deliveryLocation?.address || '',
+                pincode: deliveryLocation?.pincode || '',
+              })
+              setShowLocationModal(true)
+            }}
           >
             <MapPin
               size={23}
@@ -220,7 +281,9 @@ const Header = ({
             <span className="d-flex flex-column align-items-start">
               <small className="text-secondary">Deliver to</small>
               <span className="fw-semibold small">
-                Select location
+                {deliveryLocation
+                  ? `${deliveryLocation.address}, ${deliveryLocation.pincode}`
+                  : 'Select location'}
               </span>
             </span>
           </button>
@@ -259,6 +322,8 @@ const Header = ({
                   className="form-control bg-light border-start-0 shadow-none"
                   placeholder="Search milk, fruits, vegetables..."
                   aria-label="Search products"
+                  value={searchQuery || ''}
+                  onChange={(event) => onSearchChange(event.target.value)}
                 />
               </div>
             </form>
@@ -301,9 +366,16 @@ const Header = ({
           <button
             type="button"
             className="dropdown-item"
-            onClick={() => setShowUserMenu(false)}
+            onClick={() => {
+              if (currentUser.role === 'ADMIN') {
+                navigate('/admin')
+              } else {
+                navigate('/profile')
+              }
+              setShowUserMenu(false)
+            }}
           >
-            My Profile
+            {currentUser.role === 'ADMIN' ? 'Admin dashboard' : 'My Profile'}
           </button>
 
           <hr className="dropdown-divider" />
@@ -311,9 +383,13 @@ const Header = ({
           <button
             type="button"
             className="dropdown-item text-danger"
-            onClick={() => {
-              onLogout();
-              setShowUserMenu(false);
+            onClick={async () => {
+              try {
+                await onLogout()
+                setShowUserMenu(false)
+              } catch {
+                onFlashMessage('Could not log out. Please try again.', 'danger')
+              }
             }}
           >
             Logout
@@ -339,6 +415,75 @@ const Header = ({
         </div>
       </nav>
 
+      {showLocationModal && (
+        <div
+          className="qm-modal-backdrop"
+          onClick={() => setShowLocationModal(false)}
+        >
+          <section
+            className="qm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qm-location-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="qm-modal-header">
+              <div>
+                <h4 id="qm-location-title" className="mb-1">Delivery location</h4>
+                <p className="text-muted mb-0">Choose where you want your order delivered.</p>
+              </div>
+              <button
+                type="button"
+                className="qm-close-btn"
+                onClick={() => setShowLocationModal(false)}
+                aria-label="Close location form"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={saveDeliveryLocation}>
+              <div className="qm-modal-body">
+                <label htmlFor="qm-delivery-address" className="form-label">Area / city</label>
+                <input
+                  id="qm-delivery-address"
+                  className="form-control mb-3"
+                  value={locationDraft.address}
+                  onChange={(event) =>
+                    setLocationDraft((previous) => ({
+                      ...previous,
+                      address: event.target.value,
+                    }))
+                  }
+                  placeholder="e.g. Madhapur, Hyderabad"
+                  maxLength={120}
+                  required
+                />
+                <label htmlFor="qm-delivery-pincode" className="form-label">PIN code</label>
+                <input
+                  id="qm-delivery-pincode"
+                  className="form-control mb-3"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={locationDraft.pincode}
+                  onChange={(event) =>
+                    setLocationDraft((previous) => ({
+                      ...previous,
+                      pincode: event.target.value.replace(/\D/g, '').slice(0, 6),
+                    }))
+                  }
+                  placeholder="6-digit PIN code"
+                  required
+                />
+                <button type="submit" className="btn btn-success w-100">
+                  Save delivery location
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
       {/* Register / Login Modal */}
       {showModal && (
         <div
@@ -355,11 +500,15 @@ const Header = ({
             <div className="qm-modal-header">
               <div>
                 <h4 id="qm-modal-title" className="mb-1">
-                  {isLogin ? 'Welcome Back!' : 'Create Account'}
+                  {isAdminLogin
+                    ? 'Admin Login'
+                    : isLogin ? 'Welcome Back!' : 'Create Account'}
                 </h4>
 
                 <p className="text-muted mb-0">
-                  {isLogin
+                  {isAdminLogin
+                    ? 'Sign in to manage QuickMart customers'
+                    : isLogin
                     ? 'Login to your QuickMart account'
                     : 'Join QuickMart for easy grocery shopping'}
                 </p>
@@ -517,7 +666,9 @@ const Header = ({
                 </button>
 
                 <p className="text-center mt-3 mb-0">
-                  {isLogin
+                  {isAdminLogin
+                    ? 'Admin login'
+                    : isLogin
                     ? "Don't have an account? "
                     : 'Already have an account? '}
 
@@ -525,13 +676,33 @@ const Header = ({
                     type="button"
                     className="qm-text-btn"
                     onClick={() => {
-                      setIsLogin((previous) => !previous)
+                      if (isAdminLogin) {
+                        setIsAdminLogin(false)
+                        setIsLogin(true)
+                      } else {
+                        setIsLogin((previous) => !previous)
+                      }
                       setError('')
                     }}
                   >
-                    {isLogin ? 'Register' : 'Login'}
+                    {isAdminLogin ? 'Customer login' : isLogin ? 'Register' : 'Login'}
                   </button>
                 </p>
+                {!isAdminLogin && isLogin && (
+                  <p className="text-center mt-2 mb-0">
+                    <button
+                      type="button"
+                      className="qm-text-btn"
+                      onClick={() => {
+                        setIsAdminLogin(true)
+                        setIsLogin(true)
+                        setError('')
+                      }}
+                    >
+                      Admin login
+                    </button>
+                  </p>
+                )}
               </div>
             </form>
           </div>
@@ -584,8 +755,39 @@ const Header = ({
                       <div className="flex-grow-1">
                         <div className="fw-semibold">{item.title}</div>
                         <small className="text-muted">
-                          ${Number(item.price).toFixed(2)} × {item.quantity}
+                          ₹{Number(item.price).toFixed(2)} × {item.quantity}
                         </small>
+                        {Number.isFinite(Number(item.availableQuantity)) && (
+                          <small className="d-block text-muted">
+                            {item.availableQuantity} available
+                          </small>
+                        )}
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success"
+                          onClick={() => onUpdateCartQuantity(item.id, -1)}
+                          disabled={item.quantity <= 1}
+                          aria-label={`Decrease ${item.title} quantity`}
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="fw-semibold" aria-live="polite">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success"
+                          onClick={() => onUpdateCartQuantity(item.id, 1)}
+                          disabled={
+                            Number.isFinite(Number(item.availableQuantity)) &&
+                            item.quantity >= Number(item.availableQuantity)
+                          }
+                          aria-label={`Increase ${item.title} quantity`}
+                        >
+                          <Plus size={16} />
+                        </button>
                       </div>
                       <button
                         type="button"
@@ -603,7 +805,7 @@ const Header = ({
                 <div className="border-top mt-4 pt-3">
                   <div className="d-flex justify-content-between fw-bold mb-3">
                     <span>Subtotal</span>
-                    <span>${cartTotal.toFixed(2)}</span>
+                    <span>₹{cartTotal.toFixed(2)}</span>
                   </div>
                   <button
                     type="button"
@@ -620,23 +822,6 @@ const Header = ({
               )}
             </div>
           </section>
-        </div>
-      )}
-      {flashMessage && (
-        <div
-          className="qm-flash-message alert alert-success"
-          role="status"
-          aria-live="polite"
-        >
-          <span>{flashMessage}</span>
-          <button
-            type="button"
-            className="qm-flash-close"
-            onClick={() => setFlashMessage('')}
-            aria-label="Dismiss notification"
-          >
-            <X size={18} />
-          </button>
         </div>
       )}
     </>

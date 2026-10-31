@@ -10,43 +10,94 @@ import {
   ShoppingBasket,
 } from "lucide-react";
 
-const Body = ({ currentUser, onAddToCart }) => {
-  const categories = [
-    { name: "Fruits", icon: Apple, color: "bg-success-subtle" },
-    { name: "Vegetables", icon: Leaf, color: "bg-warning-subtle" },
-    { name: "Dairy", icon: Milk, color: "bg-info-subtle" },
-    { name: "Bakery", icon: Croissant, color: "bg-danger-subtle" },
-    { name: "Beverages", icon: Coffee, color: "bg-primary-subtle" },
-    { name: "Meat", icon: Drumstick, color: "bg-warning-subtle" },
-  ];
+const categoryStyles = [
+  { match: /fruit/i, icon: Apple, color: "bg-success-subtle" },
+  { match: /vegetable|veggie/i, icon: Leaf, color: "bg-warning-subtle" },
+  { match: /dairy|milk/i, icon: Milk, color: "bg-info-subtle" },
+  { match: /bakery|bread/i, icon: Croissant, color: "bg-danger-subtle" },
+  { match: /beverage|drink|coffee|juice/i, icon: Coffee, color: "bg-primary-subtle" },
+  { match: /meat|chicken|fish/i, icon: Drumstick, color: "bg-warning-subtle" },
+];
 
+const Body = ({ currentUser, onAddToCart, searchQuery = '' }) => {
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
+    if (!cartMessage) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setCartMessage(""), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [cartMessage]);
+
+  useEffect(() => {
     const controller = new AbortController();
+
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError("");
+
+        const response = await fetch("/api/categories", {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Could not load product categories (HTTP ${response.status}).`);
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          throw new Error("The category service returned an invalid category list.");
+        }
+
+        setCategories(data);
+      } catch (requestError) {
+        if (requestError.name !== "AbortError") {
+          setCategoriesError(
+            requestError.message || "Could not load product categories."
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCategoriesLoading(false);
+        }
+      }
+    };
 
     const fetchProducts = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          "https://dummyjson.com/products/category/groceries?limit=20",
-          { signal: controller.signal },
-        );
+        const response = await fetch("/api/products", {
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch grocery products");
+          throw new Error(`Could not load products (HTTP ${response.status}).`);
         }
 
         const data = await response.json();
-        setProducts(data.products || []);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError(err.message || "Something went wrong");
+        if (!Array.isArray(data)) {
+          throw new Error("The product service returned an invalid product list.");
+        }
+
+        setProducts(data);
+      } catch (requestError) {
+        if (requestError.name !== "AbortError") {
+          setError(
+            requestError.message ||
+              "Could not load products. Check that the product service is running."
+          );
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -55,10 +106,36 @@ const Body = ({ currentUser, onAddToCart }) => {
       }
     };
 
+    fetchCategories();
     fetchProducts();
 
     return () => controller.abort();
   }, []);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const stockedProductKeys = new Set(
+    products
+      .filter((product) => Number(product.quantity) > 0)
+      .map((product) =>
+        `${Number(product.categoryId)}:${String(product.name || product.title || '').trim().toLowerCase()}`
+      )
+  );
+  const visibleProducts = products.filter((product) => {
+    const productKey =
+      `${Number(product.categoryId)}:${String(product.name || product.title || '').trim().toLowerCase()}`;
+    if (Number(product.quantity) <= 0 && stockedProductKeys.has(productKey)) {
+      return false;
+    }
+
+    const matchesCategory =
+      selectedCategoryId === null ||
+      Number(product.categoryId) === Number(selectedCategoryId);
+    const matchesSearch =
+      !normalizedSearch ||
+      [product.name, product.description, product.categoryName]
+        .some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <main className="container-fluid px-3 px-lg-5 py-4">
@@ -110,30 +187,58 @@ const Body = ({ currentUser, onAddToCart }) => {
         </div>
 
         <div className="row g-3">
+          {categoriesLoading && (
+            <div className="col-12 text-center text-muted py-3" role="status">
+              Loading categories...
+            </div>
+          )}
+
+          {categoriesError && (
+            <div className="col-12">
+              <div className="alert alert-danger mb-0" role="alert">
+                {categoriesError}
+              </div>
+            </div>
+          )}
+
+          {!categoriesLoading && !categoriesError && categories.length === 0 && (
+            <div className="col-12 text-center text-muted py-3">
+              No categories are available yet.
+            </div>
+          )}
+
           {categories.map((category) => {
-            const Icon = category.icon;
+            const name = category.categoryName || category.category_name;
+            const style =
+              categoryStyles.find((item) => item.match.test(name || "")) ||
+              { icon: ShoppingBasket, color: "bg-success-subtle" };
+            const Icon = style.icon;
 
             return (
-              <div className="col-6 col-sm-4 col-lg-2" key={category.name}>
+              <div className="col-6 col-sm-4 col-lg-2" key={category.id}>
                 <button
                   type="button"
-                  className="card category-card border-0 shadow-sm h-100 w-100 text-center p-3 bg-white"
-                  onClick={() =>
+                  className={`card category-card border-0 shadow-sm h-100 w-100 text-center p-3 bg-white${Number(selectedCategoryId) === Number(category.id) ? " border border-success" : ""}`}
+                  aria-pressed={Number(selectedCategoryId) === Number(category.id)}
+                  onClick={() => {
+                    setSelectedCategoryId((selectedId) =>
+                      Number(selectedId) === Number(category.id) ? null : category.id
+                    );
                     document
                       .getElementById("popular-products")
                       ?.scrollIntoView({
                         behavior: "smooth",
-                      })
-                  }
+                      });
+                  }}
                 >
                   <div
-                    className={`${category.color} category-icon rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3`}
+                    className={`${style.color} category-icon rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3`}
                     style={{ width: 70, height: 70 }}
                   >
                     <Icon size={30} />
                   </div>
 
-                  <span className="fw-semibold text-dark">{category.name}</span>
+                  <span className="fw-semibold text-dark">{name}</span>
                 </button>
               </div>
             );
@@ -145,8 +250,22 @@ const Body = ({ currentUser, onAddToCart }) => {
 
       <section className="container py-5" id="popular-products">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="fw-bold">Popular Products</h2>
-          <button className="btn btn-outline-success">View All</button>
+          <h2 className="fw-bold">
+            {selectedCategoryId === null
+              ? "Popular Products"
+              : categories.find(
+                  (category) => Number(category.id) === Number(selectedCategoryId)
+                )?.categoryName || "Category Products"}
+          </h2>
+          {selectedCategoryId !== null && (
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              onClick={() => setSelectedCategoryId(null)}
+            >
+              View All
+            </button>
+          )}
         </div>
 
         {loading && (
@@ -154,7 +273,7 @@ const Body = ({ currentUser, onAddToCart }) => {
             <div className="spinner-border text-success" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
-            <p className="mt-2">Loading grocery products...</p>
+            <p className="mt-2">Loading products...</p>
           </div>
         )}
 
@@ -162,47 +281,68 @@ const Body = ({ currentUser, onAddToCart }) => {
 
         {!loading && !error && (
           <div className="row g-4">
-            {products.map((product) => (
+            {visibleProducts.map((product) => (
               <div className="col-6 col-md-4 col-lg-3" key={product.id}>
                 <div className="card h-100 border-0 shadow-sm product-card">
                   <div className="p-3 text-center">
-                    <img
-                      src={product.thumbnail}
-                      alt={product.title}
-                      className="img-fluid"
-                      style={{
-                        height: 160,
-                        width: "100%",
-                        objectFit: "contain",
-                      }}
-                      loading="lazy"
-                    />
+                    {product.imageUrl || product.thumbnail ? (
+                      <img
+                        src={product.imageUrl || product.thumbnail}
+                        alt={product.name || product.title}
+                        className="img-fluid"
+                        style={{
+                          height: 160,
+                          width: "100%",
+                          objectFit: "contain",
+                        }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div
+                        className="d-flex align-items-center justify-content-center text-success"
+                        style={{ height: 160, fontSize: 64 }}
+                        aria-hidden="true"
+                      >
+                        🛒
+                      </div>
+                    )}
                   </div>
 
                   <div className="card-body d-flex flex-column">
-                    <h6 className="fw-semibold">{product.title}</h6>
+                    <h6 className="fw-semibold">{product.name || product.title}</h6>
 
 
 
                     <div className="mt-auto">
                       <p className="text-success fw-bold fs-5">
-                        ${Number(product.price).toFixed(2)}
+                        ₹{Number(product.price).toFixed(2)}
                       </p>
 
                       <button
                         type="button"
                         className="btn btn-success w-100"
+                        disabled={Number(product.quantity) <= 0}
                         onClick={() => {
                           if (!currentUser) {
                             setCartMessage("Please log in before adding items to your cart.");
                             return;
                           }
 
-                          onAddToCart(product);
-                          setCartMessage(`${product.title} added to your cart.`);
+                          const cartProduct = {
+                            ...product,
+                            title: product.name || product.title,
+                            thumbnail: product.imageUrl || product.thumbnail || "",
+                            availableQuantity: Number(product.quantity),
+                          };
+                          const added = onAddToCart(cartProduct);
+                          setCartMessage(
+                            added
+                              ? `${cartProduct.title} added to your cart.`
+                              : `Only ${cartProduct.availableQuantity} ${cartProduct.title} available.`
+                          );
                         }}
                       >
-                        Add to Cart
+                        {Number(product.quantity) <= 0 ? "Out of Stock" : "Add to Cart"}
                       </button>
                     </div>
                   </div>
@@ -218,8 +358,14 @@ const Body = ({ currentUser, onAddToCart }) => {
           </div>
         )}
 
-        {!loading && !error && products.length === 0 && (
-          <p className="text-center text-muted">No grocery products found.</p>
+        {!loading && !error && visibleProducts.length === 0 && (
+          <p className="text-center text-muted">
+            {searchQuery.trim()
+              ? `No products match "${searchQuery.trim()}".`
+              : products.length === 0
+                ? "No products have been added yet."
+                : "No products are available in this category."}
+          </p>
         )}
       </section>
 

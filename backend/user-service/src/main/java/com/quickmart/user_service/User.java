@@ -1,5 +1,7 @@
 package com.quickmart.user.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -35,6 +37,9 @@ public class User {
 
     @Column(name = "password", nullable = false)
     private String legacyPassword;
+
+    @Column(name = "registered_at", updatable = false)
+    private LocalDateTime registeredAt;
 
     public User() {
     }
@@ -73,6 +78,10 @@ public class User {
         return email;
     }
 
+    public LocalDateTime getRegisteredAt() {
+        return registeredAt;
+    }
+
     public void setEmail(String email) {
         this.email = email;
     }
@@ -84,5 +93,12 @@ public class User {
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
         this.legacyPassword = passwordHash;
+    }
+
+    @PrePersist
+    protected void setRegistrationDate() {
+        if (registeredAt == null) {
+            registeredAt = LocalDateTime.now();
+        }
     }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,27 +21,27 @@ public class ProductController {
     // CREATE
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Product createProduct(@Valid @RequestBody Product product) {
+    public ProductResponse createProduct(@Valid @RequestBody ProductRequest product) {
         return productService.createProduct(product);
     }
 
     // GET ALL
     @GetMapping
-    public List<Product> getAllProducts() {
+    public List<ProductResponse> getAllProducts() {
         return productService.getAllProducts();
     }
 
     // GET BY ID
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id) {
+    public ProductResponse getProductById(@PathVariable Long id) {
         return productService.getProductById(id);
     }
 
     // UPDATE
     @PutMapping("/{id}")
-    public Product updateProduct(
+    public ProductResponse updateProduct(
             @PathVariable Long id,
-            @Valid @RequestBody Product product) {
+            @Valid @RequestBody ProductRequest product) {
 
         return productService.updateProduct(id, product);
     }

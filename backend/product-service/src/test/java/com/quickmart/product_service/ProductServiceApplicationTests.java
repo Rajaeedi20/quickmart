@@ -1,9 +1,11 @@
 package com.quickmart.product_service;
 
+import com.quickmart.product.ProductServiceApplication;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(classes = ProductServiceApplication.class)
 class ProductServiceApplicationTests {
 
 	@Test

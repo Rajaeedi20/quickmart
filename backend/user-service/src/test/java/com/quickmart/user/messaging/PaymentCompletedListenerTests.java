@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -49,11 +50,14 @@ class PaymentCompletedListenerTests {
         PaymentCompletedEvent event = new PaymentCompletedEvent(
                 "event-1",
                 51L,
+                91L,
+                "QM-order-91",
                 12L,
                 "payment-reference",
                 new BigDecimal("4.25"),
                 "DEMO_COMPLETED",
-                Instant.parse("2026-10-26T15:31:02Z"));
+                Instant.parse("2026-10-26T15:31:02Z"),
+                List.of(new PaymentCompletedItem(2L, "Apples", 2)));
         when(objectMapper.readValue("payload", PaymentCompletedEvent.class)).thenReturn(event);
         when(notificationRepository.existsByEventId(event.eventId())).thenReturn(false);
         when(userRepository.findById(event.userId())).thenReturn(Optional.of(user));
@@ -64,6 +68,10 @@ class PaymentCompletedListenerTests {
         verify(notificationRepository).save(notificationCaptor.capture());
         org.junit.jupiter.api.Assertions.assertEquals(event.eventId(), notificationCaptor.getValue().getEventId());
         org.junit.jupiter.api.Assertions.assertEquals(event.paymentId(), notificationCaptor.getValue().getPaymentId());
+        org.junit.jupiter.api.Assertions.assertEquals(event.orderNumber(), notificationCaptor.getValue().getOrderNumber());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "Apples x 2",
+                notificationCaptor.getValue().getItemsSummary());
         org.junit.jupiter.api.Assertions.assertEquals(event.total(), notificationCaptor.getValue().getTotal());
         org.junit.jupiter.api.Assertions.assertEquals(event.status(), notificationCaptor.getValue().getStatus());
     }
@@ -73,11 +81,14 @@ class PaymentCompletedListenerTests {
         PaymentCompletedEvent event = new PaymentCompletedEvent(
                 "event-1",
                 51L,
+                91L,
+                "QM-order-91",
                 12L,
                 "payment-reference",
                 new BigDecimal("4.25"),
                 "DEMO_COMPLETED",
-                Instant.parse("2026-10-26T15:31:02Z"));
+                Instant.parse("2026-10-26T15:31:02Z"),
+                List.of(new PaymentCompletedItem(2L, "Apples", 2)));
         when(objectMapper.readValue("payload", PaymentCompletedEvent.class)).thenReturn(event);
         when(notificationRepository.existsByEventId(event.eventId())).thenReturn(true);
 
