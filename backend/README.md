@@ -1,13 +1,16 @@
 # Backend services
 
-Each service owns a separate MySQL database. Hibernate creates or updates only
-the tables for that service in its configured database:
+Each service owns a separate MySQL database. Hibernate and service startup
+migrations manage only the tables for that service in its configured database:
 
 | Service | Default database | Port |
 | --- | --- | --- |
 | product-service | `quickmart_product` | 8081 |
 | user-service | `quickmart_db` | 8082 |
 | payment-service | `quickmart_payments` | 8083 |
+
+payment-service creates its order, order-item, and payment tables on startup if
+they do not already exist. Existing tables and data are preserved.
 
 Their entity tables are not shared between services. Database URLs can be
 overridden with `PRODUCT_DB_URL`, `USER_DB_URL`, and `PAYMENT_DB_URL`.
