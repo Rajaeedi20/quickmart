@@ -8,12 +8,26 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 class PaymentServiceApplicationTests {
+
+	@TestConfiguration
+	static class PaymentTestConfiguration {
+
+		@Bean
+		@Primary
+		ProductCatalogClient productCatalogClient() {
+			return productId -> new ProductCatalogItem(
+					productId, "Payment test item", new BigDecimal("1.25"), 10);
+		}
+	}
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
